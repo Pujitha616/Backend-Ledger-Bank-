@@ -15,6 +15,20 @@ const transactionSchema=new mongoose.Schema({
         required:[true,"Transaction must have a to account"],
         index:true
     },
+    transactionType: {
+    type: String,
+    enum: {
+        values: [
+            "TRANSFER",
+            "INITIAL_FUNDS",
+            "DEPOSIT",
+            "WITHDRAWAL"
+        ],
+        message: "Invalid transaction type"
+    },
+    default: "TRANSFER",
+    required: true
+    },
     status:{
         type:String,
         enum:{

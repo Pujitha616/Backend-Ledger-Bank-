@@ -126,6 +126,7 @@ async function createTransactionController(req,res){
         toAccount,
         amount,
         idempotencyKey,
+        transactionType: "TRANSFER",
         status:"PENDING"
        }],{session}))[0]
 
@@ -219,6 +220,7 @@ async function createInitialFundsTransactionController(req, res) {
         toAccount:toUserAccount._id,
         amount,
         idempotencyKey,
+        transactionType: "INITIAL_FUNDS",
         status:"PENDING",
     });
 
@@ -252,7 +254,245 @@ async function createInitialFundsTransactionController(req, res) {
 }
 
 
+async function createDepositController(req, res) {
+    let session;
+
+    try {
+        const { accountId, amount, idempotencyKey } = req.body;
+
+        if (!accountId || !amount || !idempotencyKey) {
+            return res.status(400).json({
+                message: "accountId, amount and idempotencyKey are required",
+            });
+        }
+
+        if (amount <= 0) {
+            return res.status(400).json({
+                message: "Amount must be greater than 0",
+            });
+        }
+
+        const existingTransaction = await transactionModel.findOne({
+            idempotencyKey,
+        });
+
+        if (existingTransaction) {
+            return res.status(409).json({
+                message: "Transaction already processed",
+                transaction: existingTransaction,
+            });
+        }
+
+        const account = await accountModel.findOne({
+            _id: accountId,
+            user: req.user._id,
+        });
+
+        if (!account) {
+            return res.status(404).json({
+                message: "Account not found",
+            });
+        }
+
+        if (account.status !== "ACTIVE") {
+            return res.status(400).json({
+                message: "Account must be ACTIVE",
+            });
+        }
+
+        session = await mongoose.startSession();
+        session.startTransaction();
+
+        const transaction = (
+            await transactionModel.create(
+                [
+                    {
+                        fromAccount: account._id,
+                        toAccount: account._id,
+                        amount,
+                        idempotencyKey,
+                        transactionType: "DEPOSIT",
+                        status: "PENDING",
+                    },
+                ],
+                { session }
+            )
+        )[0];
+
+        await ledgerModel.create(
+            [
+                {
+                    account: account._id,
+                    amount,
+                    transaction: transaction._id,
+                    type: "CREDIT",
+                },
+            ],
+            { session }
+        );
+
+        transaction.status = "COMPLETED";
+        await transaction.save({ session });
+
+        await session.commitTransaction();
+        session.endSession();
+
+        await emailService.sendDepositEmail(
+        req.user.email,
+        req.user.name,
+        amount,
+        account._id
+        );
+
+
+        return res.status(201).json({
+            message: "Deposit successful",
+            transaction,
+        });
+
+    } catch (err) {
+
+    console.error(err);
+
+    if (session?.inTransaction()) {
+        await session.abortTransaction();
+    }
+
+    session?.endSession();
+
+    return res.status(500).json({
+        message: err.message
+    });
+}
+}
+
+
+async function createWithdrawController(req, res) {
+
+    let session;
+
+    try {
+
+        const { accountId, amount, idempotencyKey } = req.body;
+
+        if (!accountId || !amount || !idempotencyKey) {
+            return res.status(400).json({
+                message: "accountId, amount and idempotencyKey are required",
+            });
+        }
+
+        if (amount <= 0) {
+            return res.status(400).json({
+                message: "Amount must be greater than 0",
+            });
+        }
+
+        const existingTransaction = await transactionModel.findOne({
+            idempotencyKey,
+        });
+
+        if (existingTransaction) {
+            return res.status(409).json({
+                message: "Transaction already processed",
+                transaction: existingTransaction,
+            });
+        }
+
+        const account = await accountModel.findOne({
+            _id: accountId,
+            user: req.user._id,
+        });
+
+        if (!account) {
+            return res.status(404).json({
+                message: "Account not found",
+            });
+        }
+
+        if (account.status !== "ACTIVE") {
+            return res.status(400).json({
+                message: "Account must be ACTIVE",
+            });
+        }
+
+        const balance = await account.getBalance();
+
+        if (balance < amount) {
+            return res.status(400).json({
+                message: "Insufficient balance",
+            });
+        }
+
+        session = await mongoose.startSession();
+        session.startTransaction();
+
+        const transaction = (
+            await transactionModel.create(
+                [
+                    {
+                        fromAccount: account._id,
+                        toAccount: account._id,
+                        amount,
+                        idempotencyKey,
+                        transactionType: "WITHDRAWAL",
+                        status: "PENDING",
+                    },
+                ],
+                { session }
+            )
+        )[0];
+
+        await ledgerModel.create(
+            [
+                {
+                    account: account._id,
+                    amount,
+                    transaction: transaction._id,
+                    type: "DEBIT",
+                },
+            ],
+            { session }
+        );
+
+        transaction.status = "COMPLETED";
+        await transaction.save({ session });
+
+        await session.commitTransaction();
+        session.endSession();
+
+        await emailService.sendWithdrawalEmail(
+        req.user.email,
+        req.user.name,
+        amount,
+        account._id
+        );
+
+
+        return res.status(201).json({
+            message: "Withdrawal successful",
+            transaction,
+        });
+
+    } catch(err){
+
+    console.error(err);
+
+    if (session?.inTransaction()) {
+        await session.abortTransaction();
+    }
+
+    session?.endSession();
+
+    return res.status(500).json({
+        message: err.message
+    });
+}
+}
+
+
 module.exports = {
     createTransactionController,
     createInitialFundsTransactionController,
+    createDepositController,
+    createWithdrawController
 };

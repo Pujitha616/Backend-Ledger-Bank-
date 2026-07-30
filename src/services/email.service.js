@@ -64,10 +64,63 @@ async function sendTransactionEmail(userEmail, name, amount, toAccount) {
     await sendEmail(userEmail, subject, text, html);
   }
 
+
+  async function sendDepositEmail(email, name, amount, accountId) {
+
+    const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: "Deposit Successful",
+        html: `
+            <h2>Deposit Successful</h2>
+
+            <p>Hello <b>${name}</b>,</p>
+
+            <p>Your deposit has been completed successfully.</p>
+
+            <ul>
+                <li><b>Amount:</b> ₹${amount}</li>
+                <li><b>Account ID:</b> ${accountId}</li>
+            </ul>
+
+            <p>Thank you for banking with us.</p>
+        `
+    };
+
+    await transporter.sendMail(mailOptions);
+}
+
+async function sendWithdrawalEmail(email, name, amount, accountId) {
+
+    const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: "Withdrawal Successful",
+        html: `
+            <h2>Withdrawal Successful</h2>
+
+            <p>Hello <b>${name}</b>,</p>
+
+            <p>Your withdrawal has been completed successfully.</p>
+
+            <ul>
+                <li><b>Amount:</b> ₹${amount}</li>
+                <li><b>Account ID:</b> ${accountId}</li>
+            </ul>
+
+            <p>Thank you for banking with us.</p>
+        `
+    };
+
+    await transporter.sendMail(mailOptions);
+}
+
 module.exports = {
     sendRegistrationEmail,
     sendTransactionEmail,
-    sendTransactionFailureEmail
+    sendTransactionFailureEmail,
+    sendDepositEmail,
+    sendWithdrawalEmail
 };
 
 

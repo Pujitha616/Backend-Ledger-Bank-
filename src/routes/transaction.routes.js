@@ -30,4 +30,22 @@ transactionRoutes.post(
 
 
 
+/**
+ * POST /api/transactions/deposit
+ */
+transactionRoutes.post(
+    "/deposit",
+    authMiddleware.authMiddleware,
+    transactionController.createDepositController
+);
+
+/**
+ * POST /api/transactions/withdraw
+ */
+transactionRoutes.post(
+    "/withdraw",
+    authMiddleware.authMiddleware,
+    transactionController.createWithdrawController
+);
+
 module.exports=transactionRoutes;
