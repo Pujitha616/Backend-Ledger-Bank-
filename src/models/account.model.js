@@ -24,7 +24,15 @@ const accountSchema=new mongoose.Schema({
         type:String,
         required:[true,"Currency is required"],
         default:"INR"
-    }
+    },
+    version:{
+         type:Number,
+         default:0
+    },
+    locked:{
+         type:Boolean,
+         default:false
+}
     },{
         timestamps:true
     })
