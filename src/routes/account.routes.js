@@ -26,6 +26,7 @@ router.get("/",authMiddleware.authMiddleware,accountController.getUserAccountsCo
 /**
  * -GET /api/accounts/balance:accountId
  */
+router.get("/balance/:accountId", authMiddleware.authMiddleware, accountController.getAccountBalanceController)
 
 
 

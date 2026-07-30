@@ -6,7 +6,7 @@ const mongoose = require('mongoose');
 
 
 
-
+ 
 /**
  * * - create a new transaction
  * THE 10-STEP TRANSACTION PROCESS
@@ -90,7 +90,7 @@ async function createTransactionController(req,res){
         * 3.check account status
         */
 
-       if(fromUseraccount.status !="ACTIVE" || toUserAccount !== "ACTIVE"){
+       if(fromUserAccount.status !== "ACTIVE" || toUserAccount.status !== "ACTIVE"){
         return res.status(400).json({
             message:"Both fromAccount and toAccount must be ACTIVE to process transaction"
         })
@@ -100,22 +100,87 @@ async function createTransactionController(req,res){
         * 4.Derive sender balance from ledger
         */
 
-       const balanceData=await fromUserAccount.getBalance()
+       const balance = await fromUserAccount.getBalance();
 
            if(balance<amount){
-            res.status(400).json({
-                message:' Insufficient balance.Current balance is ${balance}. Requested amount is ${amount} '
-            })
+            return res.status(400).json({
+                message: `Insufficient balance. Current balance is ${balance}. Requested amount is ${amount}`
+            });
            }
 
-        /**
-         * 5.
-        */
-       
    
 
 
+           let transaction;
+          try{
 
+
+        /**
+         * 5.Create transaction
+        */
+       const session = await mongoose.startSession()
+       session.startTransaction()
+
+       transaction = (await transactionModel.create([{
+        fromAccount,
+        toAccount,
+        amount,
+        idempotencyKey,
+        status:"PENDING"
+       }],{session}))[0]
+
+
+        const debitledgerEntry = await ledgerModel.create([{
+        account: fromAccount,
+        amount:amount,
+        transaction:transaction._id,
+        type: "DEBIT"
+        }],{session})
+
+
+
+        console.log("Transfer delay started:", new Date().toISOString());
+        await (()=>{
+            return new Promise((resolve) => setTimeout(resolve, 15 * 1000));
+        })()
+        console.log("Transfer delay finished:", new Date().toISOString());
+
+
+
+       const creditledgerEntry = await ledgerModel.create([{
+        account: toAccount,
+        amount:amount,
+        transaction:transaction._id,
+        type: "CREDIT"
+        }],{session})
+
+        await transactionModel.findOneAndUpdate(
+            {_id: transaction._id},
+            {status: "COMPLETED"},
+            {session}
+        )
+
+        await session.commitTransaction()
+        session.endSession()  
+    }
+     catch(error){
+         console.error("Transaction failed before completion:", error);
+         return res.status(400).json({
+            message:"Transaction is pending due to some issue, please retry after sometimer",
+        })
+
+    }
+   
+     /**
+      * 10.send email notification
+      */
+
+     await emailService.sendTransactionEmail(req.user.email,req.user.name,amount,toAccount)
+      
+
+     return res.status(201).json
+     message:"Transaction completed successfully"
+     transaction: transaction
    
 }
 

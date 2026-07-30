@@ -13,7 +13,7 @@ const transactionRoutes=Router();
  * - create a new transaction
  */
 
-transactionRoutes.post("/",authMiddleware.authSystemUserMiddleware,transactionController.createTransactionController);
+transactionRoutes.post("/", authMiddleware.authMiddleware, transactionController.createTransactionController);
 
 
 

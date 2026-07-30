@@ -41,7 +41,7 @@ const accountSchema=new mongoose.Schema({
                         $sum:{
                             $cond:[
                                 {
-                                    $seq:["$type","DEBIT"]
+                                    $eq:["$type","DEBIT"]
                                 },
                                 "$amount",
                                 0
@@ -53,7 +53,7 @@ const accountSchema=new mongoose.Schema({
                         $sum:{
                             $cond:[
                                 {
-                                    $seq:["$type","CREDIT"]
+                                    $eq:["$type","CREDIT"]
                                 },
                                 "$amount",
                                 0
