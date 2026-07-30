@@ -29,6 +29,8 @@ const ledgerSchema=new mongoose.Schema({
         required:[true,"Ledger must have a type"],
         immutable:true
     }
+},{
+    timestamps:true
 
 })
 

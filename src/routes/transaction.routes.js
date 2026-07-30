@@ -48,4 +48,16 @@ transactionRoutes.post(
     transactionController.createWithdrawController
 );
 
+
+/**
+ * GET /api/transactions/statement/:accountId
+ * Get account statement
+ */
+transactionRoutes.get(
+    "/statement/:accountId",
+    authMiddleware.authMiddleware,
+    transactionController.getAccountStatementController
+);
+
+
 module.exports=transactionRoutes;

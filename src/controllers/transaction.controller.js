@@ -179,10 +179,10 @@ async function createTransactionController(req,res){
      await emailService.sendTransactionEmail(req.user.email,req.user.name,amount,toAccount)
       
 
-     return res.status(201).json
-     message:"Transaction completed successfully"
+     return res.status(201).json({
+     message:"Transaction completed successfully",
      transaction: transaction
-   
+});
 }
 
 async function createInitialFundsTransactionController(req, res) {
@@ -490,9 +490,98 @@ async function createWithdrawController(req, res) {
 }
 
 
+async function getAccountStatementController(req, res) {
+
+    try {
+
+        const { accountId } = req.params;
+
+        const account = await accountModel.findOne({
+            _id: accountId,
+            user: req.user._id
+        });
+
+        if (!account) {
+            return res.status(404).json({
+                message: "Account not found"
+            });
+        }
+
+
+        const ledgerEntries = await ledgerModel
+            .find({ account: accountId })
+            .populate("transaction")
+            .sort({ createdAt: 1 });
+
+
+        let balance = 0;
+
+
+        const statement = ledgerEntries.map((entry)=>{
+
+
+            if(entry.type === "CREDIT"){
+                balance += entry.amount;
+            }
+
+            else if(entry.type === "DEBIT"){
+                balance -= entry.amount;
+            }
+
+
+            return {
+
+                date: entry.createdAt,
+
+                transactionType:
+                    entry.transaction?.transactionType || "UNKNOWN",
+
+                type: entry.type,
+
+                amount: entry.amount,
+
+                status:
+                    entry.transaction?.status || "UNKNOWN",
+
+                balance: balance
+
+            };
+
+        });
+
+
+
+        return res.status(200).json({
+
+            accountId,
+
+            currentBalance: balance,
+
+            totalTransactions: statement.length,
+
+            statement
+
+        });
+
+
+    }
+    catch(err){
+
+        console.error(err);
+
+        return res.status(500).json({
+            message: err.message
+        });
+
+    }
+
+}
+
+
 module.exports = {
     createTransactionController,
     createInitialFundsTransactionController,
     createDepositController,
-    createWithdrawController
+    createWithdrawController,
+    getAccountStatementController
 };
