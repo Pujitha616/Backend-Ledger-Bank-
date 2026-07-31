@@ -6,6 +6,19 @@ The application provides core banking operations including user authentication, 
 The project focuses on backend engineering concepts such as **JWT authentication, RESTful API design, database transactions, idempotency handling, ledger-based accounting, and concurrency control** to maintain data consistency during financial operations.
 
 ---
+
+
+
+## 🌐 Live Deployment
+
+The backend API is deployed on Render and is available for testing.
+
+**Base URL:** https://backend-ledger-bank.onrender.com
+
+> **Note:** This project exposes backend REST APIs only. Use Postman (or any API client) to test the available endpoints.
+
+---
+
 ## 📚 Table of Contents
 
 - 🚀 Features
